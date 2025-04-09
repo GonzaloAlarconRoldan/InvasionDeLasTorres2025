@@ -1,11 +1,57 @@
 <?php
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nombre_equipo'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $dataFile = 'data.json';
     $data = json_decode(file_get_contents($dataFile), true);
 
+    if (isset($_POST['accion'])) {
+        if ($_POST['accion'] === 'editar') {
+            foreach ($data['equipos'] as &$equipo) {
+                if ($equipo['id'] === $_POST['equipo_id']) {
+                    $equipo['nombre'] = $_POST['nombre_equipo'];
+                }
+            }
+        } elseif ($_POST['accion'] === 'eliminar') {
+            $data['equipos'] = array_filter($data['equipos'], function ($equipo) {
+                return $equipo['id'] !== $_POST['equipo_id'];
+            });
+        } elseif ($_POST['accion'] === 'agregar_integrante') {
+            foreach ($data['equipos'] as &$equipo) {
+                if ($equipo['id'] === $_POST['equipo_id']) {
+                    $equipo['integrantes'][] = [
+                        'nombre' => $_POST['nombre_integrante'],
+                        'paralelo' => $_POST['paralelo']
+                    ];
+                }
+            }
+        } elseif ($_POST['accion'] === 'eliminar_integrante') {
+            foreach ($data['equipos'] as &$equipo) {
+                if ($equipo['id'] === $_POST['equipo_id']) {
+                    $equipo['integrantes'] = array_filter($equipo['integrantes'], function ($integrante) {
+                        return $integrante['nombre'] !== $_POST['nombre_integrante'];
+                    });
+                }
+            }
+        }
+        file_put_contents($dataFile, json_encode($data, JSON_PRETTY_PRINT));
+        header('Location: equipos.php');
+        exit;
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nombre_equipo'])) {
+    $nombreEquipo = $_POST['nombre_equipo'];
+
+    // Verificar si el equipo ya existe
+    foreach ($data['equipos'] as $equipo) {
+        if ($equipo['nombre'] === $nombreEquipo) {
+            echo "<script>alert('El equipo ya existe.'); window.location.href='equipos.php';</script>";
+            exit;
+        }
+    }
+
     $nuevoEquipo = [
         'id' => 'eq-' . uniqid(),
-        'nombre' => $_POST['nombre_equipo'],
+        'nombre' => $nombreEquipo,
         'integrantes' => [],
         'postas' => $data['postas'] ?? [] // Agregar todas las postas existentes
     ];
@@ -13,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nombre_equipo'])) {
     $data['equipos'][] = $nuevoEquipo;
     file_put_contents($dataFile, json_encode($data, JSON_PRETTY_PRINT));
 
-    echo 'Equipo registrado correctamente';
+    echo "<script>alert('Equipo registrado correctamente.'); window.location.href='equipos.php';</script>";
 }
 
 $dataFile = 'data.json';
@@ -62,7 +108,7 @@ $equipos = $data['equipos'] ?? [];
                 <th>ID</th>
                 <th>Nombre</th>
                 <th>Integrantes</th>
-                <th>Postas</th>
+                <th>Acciones</th>
             </tr>
         </thead>
         <tbody>
@@ -73,21 +119,67 @@ $equipos = $data['equipos'] ?? [];
                     <td>
                         <ul>
                             <?php foreach ($equipo['integrantes'] as $integrante): ?>
-                                <li><?= htmlspecialchars($integrante['nombre']) ?> (<?= htmlspecialchars($integrante['paralelo']) ?>)</li>
+                                <li>
+                                    <?= htmlspecialchars($integrante['nombre']) ?> (<?= htmlspecialchars($integrante['paralelo']) ?>)
+                                    <form method="POST" style="display:inline;">
+                                        <input type="hidden" name="equipo_id" value="<?= htmlspecialchars($equipo['id']) ?>">
+                                        <input type="hidden" name="nombre_integrante" value="<?= htmlspecialchars($integrante['nombre']) ?>">
+                                        <button type="submit" name="accion" value="eliminar_integrante" class="btn btn-danger btn-sm">Eliminar</button>
+                                    </form>
+                                </li>
                             <?php endforeach; ?>
                         </ul>
+                        <form method="POST" class="mt-2">
+                            <input type="hidden" name="equipo_id" value="<?= htmlspecialchars($equipo['id']) ?>">
+                            <div class="mb-2">
+                                <input type="text" name="nombre_integrante" class="form-control" placeholder="Nombre del Integrante" required>
+                            </div>
+                            <div class="mb-2">
+                                <label for="paralelo" class="form-label">Paralelo</label>
+                                <select name="paralelo" class="form-select" required>
+                                    <option value="A">A</option>
+                                    <option value="B">B</option>
+                                    <option value="C">C</option>
+                                    <option value="D">D</option>
+                                    <option value="E">E</option>
+                                </select>
+                            </div>
+                            <button type="submit" name="accion" value="agregar_integrante" class="btn btn-success btn-sm">Agregar Integrante</button>
+                        </form>
                     </td>
                     <td>
-                        <ul>
-                            <?php foreach ($equipo['postas'] as $posta): ?>
-                                <li><?= htmlspecialchars($posta['nombre']) ?> (<?= htmlspecialchars($posta['ubicacion']) ?>)</li>
-                            <?php endforeach; ?>
-                        </ul>
+                        <form method="POST" style="display:inline;">
+                            <input type="hidden" name="equipo_id" value="<?= htmlspecialchars($equipo['id']) ?>">
+                            <input type="text" name="nombre_equipo" value="<?= htmlspecialchars($equipo['nombre']) ?>" class="form-control mb-2" required>
+                            <button type="submit" name="accion" value="editar" class="btn btn-warning">Editar</button>
+                        </form>
+                        <form method="POST" style="display:inline;">
+                            <input type="hidden" name="equipo_id" value="<?= htmlspecialchars($equipo['id']) ?>">
+                            <button type="submit" name="accion" value="eliminar" class="btn btn-danger">Eliminar</button>
+                        </form>
                     </td>
                 </tr>
             <?php endforeach; ?>
         </tbody>
     </table>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', function(event) {
+            const action = this.querySelector('button[name=accion]').value;
+            if (['editar', 'eliminar', 'quitar', 'eliminar_integrante', 'agregar_integrante'].includes(action)) {
+                const confirmMessage = action === 'editar' ? '¿Estás seguro de que deseas editar esta información?'
+                                    : action === 'eliminar' ? '¿Estás seguro de que deseas eliminar este equipo?'
+                                    : action === 'eliminar_integrante' ? '¿Estás seguro de que deseas eliminar este integrante?'
+                                    : action === 'agregar_integrante' ? '¿Estás seguro de que deseas agregar este integrante?'
+                                    : '¿Estás seguro de que deseas quitar la selección?';
+                if (!confirm(confirmMessage)) {
+                    event.preventDefault();
+                }
+            }
+        });
+    });
+</script>
 </body>
 </html>

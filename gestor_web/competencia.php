@@ -43,7 +43,7 @@ $postas = $data['postas'] ?? [];
             <tr>
                 <th>Equipo</th>
                 <?php foreach ($postas as $posta): ?>
-                    <th><?= htmlspecialchars($posta['nombre']) ?></th>
+                    <th><?= htmlspecialchars($posta['nombre']) . ' - ' . htmlspecialchars($posta['ubicacion']) ?></th>
                 <?php endforeach; ?>
             </tr>
         </thead>

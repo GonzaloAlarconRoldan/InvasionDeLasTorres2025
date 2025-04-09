@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['equipo_id'], $_POST['
             <tr>
                 <th>Nombre del Equipo</th>
                 <?php foreach ($postas as $posta): ?>
-                    <th><?= htmlspecialchars($posta['nombre']) ?></th>
+                    <th><?= htmlspecialchars($posta['nombre']) . ' - ' . htmlspecialchars($posta['ubicacion']) ?></th>
                 <?php endforeach; ?>
             </tr>
         </thead>
@@ -103,5 +103,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['equipo_id'], $_POST['
     </table>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', function(event) {
+            const action = this.querySelector('button[name=accion]').value;
+            if (['editar', 'eliminar', 'quitar'].includes(action)) {
+                const confirmMessage = action === 'editar' ? '¿Estás seguro de que deseas editar esta información?'
+                                    : action === 'eliminar' ? '¿Estás seguro de que deseas eliminar este elemento?'
+                                    : '¿Estás seguro de que deseas quitar la selección?';
+                if (!confirm(confirmMessage)) {
+                    event.preventDefault();
+                }
+            }
+        });
+    });
+</script>
 </body>
 </html>

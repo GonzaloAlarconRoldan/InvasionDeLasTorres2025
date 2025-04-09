@@ -108,6 +108,7 @@ $equipos = $data['equipos'] ?? [];
                 <th>ID</th>
                 <th>Nombre</th>
                 <th>Integrantes</th>
+                <th>QR</th>
                 <th>Acciones</th>
             </tr>
         </thead>
@@ -146,6 +147,14 @@ $equipos = $data['equipos'] ?? [];
                             </div>
                             <button type="submit" name="accion" value="agregar_integrante" class="btn btn-success btn-sm">Agregar Integrante</button>
                         </form>
+                    </td>
+                    <td>
+                        <div class="text-center">
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?data=<?= urlencode($equipo['id']) ?>&size=200x200" alt="QR Code" class="mb-2">
+                            <a href="https://api.qrserver.com/v1/create-qr-code/?data=<?= urlencode($equipo['id']) ?>&size=300x300" download="<?= htmlspecialchars($equipo['nombre']) ?>.png">
+                                <button class="btn btn-primary btn-sm">Descargar QR</button>
+                            </a>
+                        </div>
                     </td>
                     <td>
                         <form method="POST" style="display:inline;">

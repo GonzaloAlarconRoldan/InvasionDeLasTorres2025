@@ -5,8 +5,21 @@ $equipos = $data['equipos'] ?? [];
 $postas = $data['postas'] ?? [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['equipo_id'], $_POST['posta_nombre'], $_POST['accion'])) {
+    $codigoCorrecto = false;
+
     foreach ($equipos as &$equipo) {
         if ($equipo['id'] === $_POST['equipo_id']) {
+            // Solo validar código si la acción es aprobar
+            if ($_POST['accion'] === 'aprobar') {
+                if (!isset($_POST['codigo_equipo']) || $_POST['codigo_equipo'] !== $equipo['id']) {
+                    break;
+                }
+                $codigoCorrecto = true;
+            } else {
+                // Para quitar no se necesita validar código
+                $codigoCorrecto = true;
+            }
+
             foreach ($equipo['postas'] as &$posta) {
                 if ($posta['nombre'] === $_POST['posta_nombre']) {
                     if ($_POST['accion'] === 'aprobar') {
@@ -20,9 +33,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['equipo_id'], $_POST['
             }
         }
     }
-    $data['equipos'] = $equipos;
-    file_put_contents($dataFile, json_encode($data, JSON_PRETTY_PRINT));
-    header('Location: seguimiento.php');
+
+    if ($codigoCorrecto) {
+        $data['equipos'] = $equipos;
+        file_put_contents($dataFile, json_encode($data, JSON_PRETTY_PRINT));
+    } else {
+        echo "<script>alert('Código de equipo incorrecto. La acción no fue realizada.');</script>";
+    }
+
+    echo "<script>window.location.href='seguimiento.php';</script>";
     exit;
 }
 ?>
@@ -30,12 +49,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['equipo_id'], $_POST['
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Seguimiento de Postas</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         .aprobado {
-            background-color: #d4edda !important; /* Asegura que el color verde se aplique correctamente */
+            background-color: #d4edda !important;
         }
     </style>
 </head>
@@ -43,9 +61,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['equipo_id'], $_POST['
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="dashboard.php">Dashboard</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ms-auto">
                 <li class="nav-item">
@@ -55,67 +70,124 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['equipo_id'], $_POST['
         </div>
     </div>
 </nav>
+
 <div class="container mt-5">
     <h1 class="mb-4">Seguimiento de Postas</h1>
     <table class="table table-bordered">
         <thead>
-            <tr>
-                <th>Nombre del Equipo</th>
-                <?php foreach ($postas as $posta): ?>
-                    <th><?= htmlspecialchars($posta['nombre']) . ' - ' . htmlspecialchars($posta['ubicacion']) ?></th>
-                <?php endforeach; ?>
-            </tr>
+        <tr>
+            <th>Nombre del Equipo</th>
+            <?php foreach ($postas as $posta): ?>
+                <th><?= htmlspecialchars($posta['nombre']) . ' - ' . htmlspecialchars($posta['ubicacion']) ?></th>
+            <?php endforeach; ?>
+        </tr>
         </thead>
         <tbody>
-            <?php foreach ($equipos as $equipo): ?>
-                <tr>
-                    <td><?= htmlspecialchars($equipo['nombre']) ?></td>
-                    <?php foreach ($postas as $posta): ?>
-                        <?php
-                        $estadoPosta = 'pendiente';
-                        $horaAprobacion = null;
-                        foreach ($equipo['postas'] as $postaEquipo) {
-                            if ($postaEquipo['nombre'] === $posta['nombre']) {
-                                $estadoPosta = $postaEquipo['estado'];
-                                $horaAprobacion = $postaEquipo['hora_aprobacion'];
-                                break;
-                            }
+        <?php foreach ($equipos as $equipo): ?>
+            <tr>
+                <td>
+                    <?= htmlspecialchars($equipo['nombre']) ?>
+                    <br><small class="text-muted">ID: <?= htmlspecialchars($equipo['id']) ?></small>
+                </td>
+                <?php foreach ($postas as $posta): ?>
+                    <?php
+                    $estadoPosta = 'pendiente';
+                    $horaAprobacion = null;
+                    foreach ($equipo['postas'] as $postaEquipo) {
+                        if ($postaEquipo['nombre'] === $posta['nombre']) {
+                            $estadoPosta = $postaEquipo['estado'];
+                            $horaAprobacion = $postaEquipo['hora_aprobacion'];
+                            break;
                         }
-                        ?>
-                        <td class="<?= $estadoPosta === 'aprobado' ? 'aprobado' : '' ?>">
-                            <div>
-                                <?= $horaAprobacion ? '<small>Hora: ' . htmlspecialchars($horaAprobacion) . '</small>' : '' ?>
-                            </div>
-                            <form method="POST" style="display:inline;">
-                                <input type="hidden" name="equipo_id" value="<?= htmlspecialchars($equipo['id']) ?>">
-                                <input type="hidden" name="posta_nombre" value="<?= htmlspecialchars($posta['nombre']) ?>">
-                                <?php if ($estadoPosta === 'aprobado'): ?>
-                                    <button type="submit" name="accion" value="quitar" class="btn btn-warning">Quitar selección</button>
-                                <?php else: ?>
-                                    <button type="submit" name="accion" value="aprobar" class="btn btn-success">Aprobar</button>
-                                <?php endif; ?>
-                            </form>
-                        </td>
-                    <?php endforeach; ?>
-                </tr>
-            <?php endforeach; ?>
+                    }
+                    ?>
+                    <td class="<?= $estadoPosta === 'aprobado' ? 'aprobado' : '' ?>">
+                        <?= $horaAprobacion ? '<small>Hora: ' . htmlspecialchars($horaAprobacion) . '</small><br>' : '' ?>
+                        <button class="btn <?= $estadoPosta === 'aprobado' ? 'btn-warning' : 'btn-success' ?> btn-sm"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modalCodigo"
+                                data-equipo-id="<?= $equipo['id'] ?>"
+                                data-posta-nombre="<?= $posta['nombre'] ?>"
+                                data-accion="<?= $estadoPosta === 'aprobado' ? 'quitar' : 'aprobar' ?>">
+                            <?= $estadoPosta === 'aprobado' ? 'Quitar selección' : 'Aprobar' ?>
+                        </button>
+                    </td>
+                <?php endforeach; ?>
+            </tr>
+        <?php endforeach; ?>
         </tbody>
     </table>
 </div>
+
+<!-- MODAL QR -->
+<div class="modal fade" id="modalCodigo" tabindex="-1" aria-labelledby="modalCodigoLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="POST" id="formCodigo" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalCodigoLabel">Escanear QR del equipo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" name="equipo_id" id="equipoIdInput">
+                <input type="hidden" name="posta_nombre" id="postaNombreInput">
+                <input type="hidden" name="accion" id="accionInput">
+                <input type="hidden" name="codigo_equipo" id="codigoEquipoInput">
+                <div id="qr-reader" style="width: 100%;"></div>
+                <div class="text-center mt-2">
+                    <small>Escanea el QR del equipo para confirmar la acción</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="cancelScanBtn">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
-    document.querySelectorAll('form').forEach(form => {
-        form.addEventListener('submit', function(event) {
-            const action = this.querySelector('button[name=accion]').value;
-            if (['editar', 'eliminar', 'quitar'].includes(action)) {
-                const confirmMessage = action === 'editar' ? '¿Estás seguro de que deseas editar esta información?'
-                                    : action === 'eliminar' ? '¿Estás seguro de que deseas eliminar este elemento?'
-                                    : '¿Estás seguro de que deseas quitar la selección?';
-                if (!confirm(confirmMessage)) {
-                    event.preventDefault();
-                }
+    let qrScanner;
+    const modal = document.getElementById('modalCodigo');
+
+    modal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        document.getElementById('equipoIdInput').value = button.getAttribute('data-equipo-id');
+        document.getElementById('postaNombreInput').value = button.getAttribute('data-posta-nombre');
+        document.getElementById('accionInput').value = button.getAttribute('data-accion');
+        document.getElementById('codigoEquipoInput').value = '';
+
+        const accion = button.getAttribute('data-accion');
+        if (accion === 'quitar') return; // no abrir escáner si se va a quitar
+
+        const qrReader = new Html5Qrcode("qr-reader");
+        const config = { fps: 10, qrbox: 250 };
+
+        qrScanner = qrReader;
+        qrScanner.start(
+            { facingMode: "environment" },
+            config,
+            qrCodeMessage => {
+                document.getElementById('codigoEquipoInput').value = qrCodeMessage;
+                qrScanner.stop().then(() => {
+                    qrScanner.clear();
+                    const modalInstance = bootstrap.Modal.getInstance(modal);
+                    modalInstance.hide();
+                    document.getElementById('formCodigo').submit();
+                });
+            },
+            errorMessage => {
+                // Silencio errores comunes
             }
+        ).catch(err => {
+            console.error("Error iniciando escáner QR:", err);
         });
+    });
+
+    modal.addEventListener('hide.bs.modal', function () {
+        if (qrScanner) {
+            qrScanner.stop().then(() => qrScanner.clear()).catch(() => {});
+        }
     });
 </script>
 </body>

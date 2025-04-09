@@ -1,4 +1,56 @@
 {
-    "equipos": [],
-    "postas": []
+    "equipos": [
+        {
+            "id": "eq-67f6a06775ae6",
+            "nombre": "Equipo 1",
+            "integrantes": [],
+            "postas": [
+                {
+                    "nombre": "Posta 1",
+                    "ubicacion": "Torre Innovacion",
+                    "estado": "aprobado",
+                    "hora_aprobacion": "2025-04-09 20:38:06"
+                },
+                {
+                    "nombre": "Posta 2",
+                    "ubicacion": "Torre Maestra",
+                    "estado": "pendiente",
+                    "hora_aprobacion": null
+                }
+            ]
+        },
+        {
+            "id": "eq-67f6a06cd735a",
+            "nombre": "Equipo 2",
+            "integrantes": [],
+            "postas": [
+                {
+                    "nombre": "Posta 1",
+                    "ubicacion": "Torre Innovacion",
+                    "estado": "pendiente",
+                    "hora_aprobacion": null
+                },
+                {
+                    "nombre": "Posta 2",
+                    "ubicacion": "Torre Maestra",
+                    "estado": "pendiente",
+                    "hora_aprobacion": null
+                }
+            ]
+        }
+    ],
+    "postas": [
+        {
+            "nombre": "Posta 1",
+            "ubicacion": "Torre Innovacion",
+            "estado": "pendiente",
+            "hora_aprobacion": null
+        },
+        {
+            "nombre": "Posta 2",
+            "ubicacion": "Torre Maestra",
+            "estado": "pendiente",
+            "hora_aprobacion": null
+        }
+    ]
 }
